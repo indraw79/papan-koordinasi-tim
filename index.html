@@ -488,9 +488,33 @@
     supabase.auth.signOut();
   });
 
+  function bacaErrorDariHash() {
+    const hash = window.location.hash;
+    if (!hash || hash.length < 2) return null;
+    const params = new URLSearchParams(hash.slice(1));
+    const error = params.get("error");
+    if (!error) return null;
+    return { error, description: params.get("error_description") || "" };
+  }
+
+  function bersihkanHashUrl() {
+    if (window.location.hash) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }
+
   async function initAuth() {
+    const hashError = bacaErrorDariHash();
+
     const { data: { session } } = await supabase.auth.getSession();
     updateAuthUI(session);
+
+    if (!session && hashError) {
+      loginStatus.hidden = false;
+      loginStatus.textContent = "Link masuk sudah kedaluwarsa atau tidak valid. Silakan minta link baru.";
+    }
+
+    bersihkanHashUrl();
 
     supabase.auth.onAuthStateChange((_event, session) => {
       updateAuthUI(session);
