@@ -2,6 +2,12 @@
 
 Aplikasi web sederhana untuk mengganti koordinasi tugas tim yang biasanya dilakukan lewat WhatsApp. Semua tugas tim terlihat dalam satu layar, jadi tidak perlu scroll chat lagi untuk tahu siapa mengerjakan apa.
 
+## Akses Tim
+
+**https://papan-koordinasi-tim-esajaya.vercel.app**
+
+Masukkan email di halaman login untuk menerima Magic Link, lalu klik link tersebut dari inbox untuk masuk.
+
 ## Fitur
 
 - Login tanpa password lewat Magic Link (email)
