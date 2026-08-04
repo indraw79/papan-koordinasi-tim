@@ -36,9 +36,11 @@
     color: var(--muted);
     font-size: 0.95rem;
   }
-  main {
+  main, #auth-view, #app-view > .topbar {
     max-width: 1100px;
     margin: 0 auto;
+  }
+  main {
     padding: 24px 20px 60px;
   }
   .form-card {
@@ -49,6 +51,10 @@
     margin-bottom: 28px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
   }
+  #auth-view.form-card {
+    margin: 40px auto 0;
+    max-width: 420px;
+  }
   .form-card h2 {
     margin: 0 0 16px;
     font-size: 1.05rem;
@@ -58,7 +64,7 @@
     gap: 12px;
     flex-wrap: wrap;
   }
-  .form-row .field {
+  .form-row .field, #auth-view .field {
     flex: 1 1 200px;
     display: flex;
     flex-direction: column;
@@ -94,6 +100,37 @@
     align-self: flex-end;
   }
   button:hover { background: #4338ca; }
+  button:disabled { background: var(--muted); cursor: not-allowed; }
+
+  #auth-view form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #login-status {
+    margin: 12px 0 0;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .topbar button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    font-size: 0.85rem;
+  }
+  .topbar button:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
 
   .board {
     display: grid;
@@ -181,65 +218,95 @@
   <p>Satu layar untuk lihat siapa mengerjakan apa, tanpa scroll chat</p>
 </header>
 
-<main>
-  <section class="form-card">
-    <h2>Tambah Tugas Baru</h2>
-    <form id="form-tugas">
-      <div class="form-row">
-        <div class="field">
-          <label for="nama-tugas">Nama Tugas</label>
-          <input id="nama-tugas" type="text" placeholder="Misal: Buat laporan mingguan" required>
+<section class="form-card" id="auth-view" hidden>
+  <h2>Masuk</h2>
+  <form id="form-login">
+    <div class="field">
+      <label for="login-email">Email</label>
+      <input id="login-email" type="email" placeholder="nama@contoh.com" required>
+    </div>
+    <button type="submit" id="btn-kirim-link">Kirim Link Masuk</button>
+  </form>
+  <p class="empty" id="login-status" hidden></p>
+</section>
+
+<div id="app-view" hidden>
+  <div class="topbar">
+    <span id="user-email"></span>
+    <button type="button" id="btn-logout">Keluar</button>
+  </div>
+
+  <main>
+    <section class="form-card">
+      <h2>Tambah Tugas Baru</h2>
+      <form id="form-tugas">
+        <div class="form-row">
+          <div class="field">
+            <label for="nama-tugas">Nama Tugas</label>
+            <input id="nama-tugas" type="text" placeholder="Misal: Buat laporan mingguan" required>
+          </div>
+          <div class="field">
+            <label for="penanggung-jawab">Penanggung Jawab</label>
+            <input id="penanggung-jawab" type="text" placeholder="Misal: Dinda" required>
+          </div>
+          <div class="field">
+            <label for="status-awal">Status</label>
+            <select id="status-awal">
+              <option value="Belum Mulai">Belum Mulai</option>
+              <option value="Dikerjakan">Dikerjakan</option>
+              <option value="Selesai">Selesai</option>
+            </select>
+          </div>
+          <button type="submit">Tambah Tugas</button>
         </div>
-        <div class="field">
-          <label for="penanggung-jawab">Penanggung Jawab</label>
-          <input id="penanggung-jawab" type="text" placeholder="Misal: Dinda" required>
-        </div>
-        <div class="field">
-          <label for="status-awal">Status</label>
-          <select id="status-awal">
-            <option value="Belum Mulai">Belum Mulai</option>
-            <option value="Dikerjakan">Dikerjakan</option>
-            <option value="Selesai">Selesai</option>
-          </select>
-        </div>
-        <button type="submit">Tambah Tugas</button>
+      </form>
+    </section>
+
+    <section class="board" id="board">
+      <div class="column" data-status="Belum Mulai">
+        <h3>Belum Mulai <span class="count" id="count-belum-mulai">0</span></h3>
+        <div class="list" id="list-belum-mulai"></div>
       </div>
-    </form>
-  </section>
+      <div class="column" data-status="Dikerjakan">
+        <h3>Dikerjakan <span class="count" id="count-dikerjakan">0</span></h3>
+        <div class="list" id="list-dikerjakan"></div>
+      </div>
+      <div class="column" data-status="Selesai">
+        <h3>Selesai <span class="count" id="count-selesai">0</span></h3>
+        <div class="list" id="list-selesai"></div>
+      </div>
+    </section>
+  </main>
+</div>
 
-  <section class="board" id="board">
-    <div class="column" data-status="Belum Mulai">
-      <h3>Belum Mulai <span class="count" id="count-belum-mulai">0</span></h3>
-      <div class="list" id="list-belum-mulai"></div>
-    </div>
-    <div class="column" data-status="Dikerjakan">
-      <h3>Dikerjakan <span class="count" id="count-dikerjakan">0</span></h3>
-      <div class="list" id="list-dikerjakan"></div>
-    </div>
-    <div class="column" data-status="Selesai">
-      <h3>Selesai <span class="count" id="count-selesai">0</span></h3>
-      <div class="list" id="list-selesai"></div>
-    </div>
-  </section>
-</main>
+<script type="module">
+  import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-<script>
-  const STORAGE_KEY = "papan-koordinasi-tim-tugas";
+  // Isi dengan Project URL dan anon public key dari Supabase Dashboard
+  // (Project Settings -> API). Aman untuk ditaruh di kode client-side --
+  // akses sebenarnya dibatasi oleh RLS policy di tabel `tasks`.
+  const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   const STATUS_LIST = ["Belum Mulai", "Dikerjakan", "Selesai"];
+
+  const authView = document.getElementById("auth-view");
+  const appView = document.getElementById("app-view");
+  const formLogin = document.getElementById("form-login");
+  const inputEmail = document.getElementById("login-email");
+  const btnKirimLink = document.getElementById("btn-kirim-link");
+  const loginStatus = document.getElementById("login-status");
+  const userEmailEl = document.getElementById("user-email");
+  const btnLogout = document.getElementById("btn-logout");
 
   const form = document.getElementById("form-tugas");
   const inputNama = document.getElementById("nama-tugas");
   const inputPJ = document.getElementById("penanggung-jawab");
   const inputStatusAwal = document.getElementById("status-awal");
 
-  function ambilTugas() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  }
-
-  function simpanTugas(tugas) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tugas));
-  }
+  let realtimeChannel = null;
 
   function idKolom(status) {
     return "list-" + status.toLowerCase().replace(/ /g, "-");
@@ -249,8 +316,36 @@
     return "count-" + status.toLowerCase().replace(/ /g, "-");
   }
 
-  function render() {
-    const semuaTugas = ambilTugas();
+  function escapeHTML(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function ambilTugas() {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+    return data;
+  }
+
+  async function render() {
+    const semuaTugas = await ambilTugas();
+
+    if (semuaTugas === null) {
+      STATUS_LIST.forEach(status => {
+        document.getElementById(idKolom(status)).innerHTML =
+          '<div class="empty">Gagal memuat data</div>';
+        document.getElementById(idHitung(status)).textContent = "0";
+      });
+      return;
+    }
 
     STATUS_LIST.forEach(status => {
       const list = document.getElementById(idKolom(status));
@@ -266,7 +361,7 @@
       list.innerHTML = tugasKolom.map(t => `
         <div class="task" data-id="${t.id}">
           <div class="nama">${escapeHTML(t.nama)}</div>
-          <div class="pj">Penanggung jawab: ${escapeHTML(t.penanggungJawab)}</div>
+          <div class="pj">Penanggung jawab: ${escapeHTML(t.penanggung_jawab)}</div>
           <div class="task-actions">
             <select onchange="ubahStatus('${t.id}', this.value)">
               ${STATUS_LIST.map(s => `<option value="${s}" ${s === t.status ? "selected" : ""}>${s}</option>`).join("")}
@@ -278,29 +373,35 @@
     });
   }
 
-  function escapeHTML(str) {
-    const div = document.createElement("div");
-    div.textContent = str;
-    return div.innerHTML;
-  }
+  async function ubahStatus(id, statusBaru) {
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: statusBaru })
+      .eq("id", id);
 
-  function ubahStatus(id, statusBaru) {
-    const semuaTugas = ambilTugas();
-    const tugas = semuaTugas.find(t => t.id === id);
-    if (tugas) {
-      tugas.status = statusBaru;
-      simpanTugas(semuaTugas);
-      render();
+    if (error) {
+      alert(error.message);
+      return;
     }
-  }
-
-  function hapusTugas(id) {
-    const semuaTugas = ambilTugas().filter(t => t.id !== id);
-    simpanTugas(semuaTugas);
     render();
   }
 
-  form.addEventListener("submit", function (e) {
+  async function hapusTugas(id) {
+    const { error } = await supabase.from("tasks").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    render();
+  }
+
+  // Inline onclick/onchange di template render() butuh ini karena
+  // script type="module" tidak otomatis menempel ke window.
+  window.ubahStatus = ubahStatus;
+  window.hapusTugas = hapusTugas;
+
+  form.addEventListener("submit", async function (e) {
     e.preventDefault();
     const nama = inputNama.value.trim();
     const penanggungJawab = inputPJ.value.trim();
@@ -308,14 +409,21 @@
 
     if (!nama || !penanggungJawab) return;
 
-    const semuaTugas = ambilTugas();
-    semuaTugas.push({
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    const submitBtn = form.querySelector("button[type=submit]");
+    submitBtn.disabled = true;
+
+    const { error } = await supabase.from("tasks").insert({
       nama,
-      penanggungJawab,
+      penanggung_jawab: penanggungJawab,
       status
     });
-    simpanTugas(semuaTugas);
+
+    submitBtn.disabled = false;
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
 
     inputNama.value = "";
     inputPJ.value = "";
@@ -325,7 +433,71 @@
     render();
   });
 
-  render();
+  function subscribeRealtime() {
+    if (realtimeChannel) return;
+    realtimeChannel = supabase
+      .channel("tasks-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
+        render();
+      })
+      .subscribe();
+  }
+
+  function unsubscribeRealtime() {
+    if (realtimeChannel) {
+      supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+  }
+
+  function updateAuthUI(session) {
+    if (session) {
+      authView.hidden = true;
+      appView.hidden = false;
+      userEmailEl.textContent = session.user.email;
+      subscribeRealtime();
+      render();
+    } else {
+      authView.hidden = false;
+      appView.hidden = true;
+      unsubscribeRealtime();
+    }
+  }
+
+  formLogin.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const email = inputEmail.value.trim();
+    if (!email) return;
+
+    btnKirimLink.disabled = true;
+    loginStatus.hidden = true;
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + window.location.pathname }
+    });
+
+    btnKirimLink.disabled = false;
+    loginStatus.hidden = false;
+    loginStatus.textContent = error
+      ? `Gagal mengirim link: ${error.message}`
+      : "Cek email Anda untuk link masuk.";
+  });
+
+  btnLogout.addEventListener("click", function () {
+    supabase.auth.signOut();
+  });
+
+  async function initAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    updateAuthUI(session);
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      updateAuthUI(session);
+    });
+  }
+
+  initAuth();
 </script>
 
 </body>
