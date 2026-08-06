@@ -334,8 +334,8 @@
             <input id="nama-tugas" type="text" placeholder="Misal: Buat laporan mingguan" required>
           </div>
           <div class="field">
-            <label for="penanggung-jawab">Penanggung Jawab</label>
-            <input id="penanggung-jawab" type="text" placeholder="Misal: Dinda" required>
+            <label for="penanggung-jawab">Penanggung Jawab (email login)</label>
+            <input id="penanggung-jawab" type="email" placeholder="Misal: dinda@esajaya.com" required>
           </div>
           <div class="field">
             <label for="status-awal">Status</label>
@@ -407,6 +407,7 @@
   const inputStatusAwal = document.getElementById("status-awal");
 
   let realtimeChannel = null;
+  let currentUserEmail = null;
 
   function idKolom(status) {
     return "list-" + status.toLowerCase().replace(/ /g, "-");
@@ -420,6 +421,11 @@
     const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function isPJSendiri(tugas) {
+    return !!currentUserEmail &&
+      tugas.penanggung_jawab.trim().toLowerCase() === currentUserEmail.toLowerCase();
   }
 
   // Kunci tanggal lokal (YYYY-MM-DD) dari sebuah timestamptz, dipakai untuk
@@ -492,7 +498,7 @@
             <select onchange="ubahStatus('${t.id}', this.value)">
               ${STATUS_LIST.map(s => `<option value="${s}" ${s === t.status ? "selected" : ""}>${STATUS_ICON[s]} ${s}</option>`).join("")}
             </select>
-            <button class="hapus" onclick="hapusTugas('${t.id}')">Hapus</button>
+            ${isPJSendiri(t) ? `<button class="hapus" onclick="hapusTugas('${t.id}')">Hapus</button>` : ""}
           </div>
         </div>
       `).join("");
@@ -605,10 +611,14 @@
   }
 
   async function hapusTugas(id) {
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    const { data, error } = await supabase.from("tasks").delete().eq("id", id).select();
 
     if (error) {
       alert(error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      alert("Tidak bisa menghapus: kamu bukan penanggung jawab tugas ini.");
       return;
     }
     render();
@@ -649,7 +659,7 @@
     }
 
     inputNama.value = "";
-    inputPJ.value = "";
+    inputPJ.value = currentUserEmail || "";
     inputStatusAwal.value = "Belum Mulai";
     inputNama.focus();
 
@@ -681,12 +691,15 @@
       authView.hidden = true;
       appView.hidden = false;
       userEmailEl.textContent = session.user.email;
+      currentUserEmail = session.user.email;
+      if (!inputPJ.value) inputPJ.value = currentUserEmail;
       subscribeRealtime();
       render();
       renderArsip();
     } else {
       authView.hidden = false;
       appView.hidden = true;
+      currentUserEmail = null;
       unsubscribeRealtime();
     }
   }

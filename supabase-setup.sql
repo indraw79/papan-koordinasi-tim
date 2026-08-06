@@ -24,6 +24,9 @@ create table if not exists public.tasks (
 
 -- 2. Row Level Security: hanya user yang sudah login (magic link) yang
 --    boleh baca/tulis, dan semua user login berbagi papan yang sama.
+--    Kecuali hapus: hanya penanggung jawab tugas itu sendiri yang boleh
+--    (dicocokkan dengan email login, jadi field "Penanggung Jawab" HARUS
+--    diisi persis sama dengan email login orang tsb).
 alter table public.tasks enable row level security;
 
 create policy "Authenticated select" on public.tasks
@@ -35,8 +38,8 @@ create policy "Authenticated insert" on public.tasks
 create policy "Authenticated update" on public.tasks
   for update to authenticated using (true) with check (true);
 
-create policy "Authenticated delete" on public.tasks
-  for delete to authenticated using (true);
+create policy "PJ sendiri boleh hapus" on public.tasks
+  for delete to authenticated using (lower(penanggung_jawab) = lower(auth.email()));
 
 -- 3. Aktifkan Realtime supaya perubahan langsung tersiar ke semua client.
 --    Jika publication "supabase_realtime" belum ada di project ini, ganti
@@ -110,3 +113,23 @@ select cron.schedule(
   '0 1 * * *',
   $$select public.arsipkan_tugas_selesai();$$
 );
+
+-- 6. Migrasi: batasi hapus tugas hanya untuk penanggung jawabnya sendiri.
+--    Jalankan SEKALI di SQL Editor kalau tabel `tasks` sudah live (policy
+--    lama "Authenticated delete" mengizinkan siapa saja menghapus apa saja).
+--    Fungsi arsip otomatis (langkah 5 di atas) TIDAK terpengaruh karena
+--    jalan sebagai `security definer`, jadi tetap bisa hapus tugas Selesai
+--    yang sudah 3 hari meski pemiliknya tidak login saat itu.
+drop policy if exists "Authenticated delete" on public.tasks;
+
+create policy "PJ sendiri boleh hapus" on public.tasks
+  for delete to authenticated using (lower(penanggung_jawab) = lower(auth.email()));
+
+-- Opsional tapi penting: tugas LAMA yang Penanggung Jawab-nya masih nama
+-- biasa (RINA, ALFI, dst, bukan email) jadi tidak bisa dihapus siapa pun
+-- setelah migrasi ini, karena tidak ada email yang cocok dengan teks itu.
+-- Perbaiki dengan ganti ke email asli tiap orang, contoh (sesuaikan dulu):
+-- update public.tasks set penanggung_jawab = 'rina@esajaya.com' where penanggung_jawab = 'RINA';
+-- update public.tasks set penanggung_jawab = 'alfi@esajaya.com' where penanggung_jawab = 'ALFI';
+-- update public.tasks set penanggung_jawab = 'arira@esajaya.com' where penanggung_jawab = 'ARIRA';
+-- update public.tasks set penanggung_jawab = 'indrawahyudi.1979@gmail.com' where penanggung_jawab in ('Indra', 'INDRA');
