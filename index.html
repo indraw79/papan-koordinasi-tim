@@ -173,6 +173,12 @@
   .task .pj {
     color: var(--muted);
     font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+  .task .tanggal {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.6;
     margin-bottom: 10px;
   }
   .task-actions {
@@ -203,6 +209,26 @@
     font-size: 0.85rem;
     text-align: center;
     padding: 20px 0;
+  }
+
+  .rekap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .rekap-table th, .rekap-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rekap-table th {
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .rekap-table tbody tr:last-child td {
+    border-bottom: none;
   }
 
   @media (max-width: 720px) {
@@ -276,6 +302,11 @@
         <div class="list" id="list-selesai"></div>
       </div>
     </section>
+
+    <section class="form-card">
+      <h2>Rekap Harian</h2>
+      <div id="rekap-list"></div>
+    </section>
   </main>
 </div>
 
@@ -322,6 +353,23 @@
     return div.innerHTML;
   }
 
+  // Kunci tanggal lokal (YYYY-MM-DD) dari sebuah timestamptz, dipakai untuk
+  // mengelompokkan tugas per hari di rekap harian.
+  function tanggalLokal(iso) {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function formatTanggalPendek(tanggalKey) {
+    const d = new Date(tanggalKey + "T00:00:00");
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  let tugasCache = [];
+
   async function ambilTugas() {
     const { data, error } = await supabase
       .from("tasks")
@@ -344,8 +392,12 @@
           '<div class="empty">Gagal memuat data</div>';
         document.getElementById(idHitung(status)).textContent = "0";
       });
+      document.getElementById("rekap-list").innerHTML =
+        '<div class="empty">Gagal memuat data</div>';
       return;
     }
+
+    tugasCache = semuaTugas;
 
     STATUS_LIST.forEach(status => {
       const list = document.getElementById(idKolom(status));
@@ -362,6 +414,11 @@
         <div class="task" data-id="${t.id}">
           <div class="nama">${escapeHTML(t.nama)}</div>
           <div class="pj">Penanggung jawab: ${escapeHTML(t.penanggung_jawab)}</div>
+          <div class="tanggal">
+            Dibuat: ${formatTanggalPendek(tanggalLokal(t.created_at))}
+            ${t.dikerjakan_at ? `<br>Dikerjakan: ${formatTanggalPendek(tanggalLokal(t.dikerjakan_at))}` : ""}
+            ${t.selesai_at ? `<br>Selesai: ${formatTanggalPendek(tanggalLokal(t.selesai_at))}` : ""}
+          </div>
           <div class="task-actions">
             <select onchange="ubahStatus('${t.id}', this.value)">
               ${STATUS_LIST.map(s => `<option value="${s}" ${s === t.status ? "selected" : ""}>${s}</option>`).join("")}
@@ -371,12 +428,65 @@
         </div>
       `).join("");
     });
+
+    renderRekap(semuaTugas);
+  }
+
+  function renderRekap(semuaTugas) {
+    const rekapEl = document.getElementById("rekap-list");
+    const map = {};
+
+    function tambah(tanggalKey, field) {
+      if (!map[tanggalKey]) map[tanggalKey] = { dibuat: 0, dikerjakan: 0, selesai: 0 };
+      map[tanggalKey][field]++;
+    }
+
+    semuaTugas.forEach(t => {
+      if (t.created_at) tambah(tanggalLokal(t.created_at), "dibuat");
+      if (t.dikerjakan_at) tambah(tanggalLokal(t.dikerjakan_at), "dikerjakan");
+      if (t.selesai_at) tambah(tanggalLokal(t.selesai_at), "selesai");
+    });
+
+    const tanggalList = Object.keys(map).sort((a, b) => b.localeCompare(a));
+
+    if (tanggalList.length === 0) {
+      rekapEl.innerHTML = '<div class="empty">Belum ada aktivitas</div>';
+      return;
+    }
+
+    rekapEl.innerHTML = `
+      <table class="rekap-table">
+        <thead>
+          <tr><th>Tanggal</th><th>Dibuat</th><th>Dikerjakan</th><th>Selesai</th></tr>
+        </thead>
+        <tbody>
+          ${tanggalList.map(tgl => `
+            <tr>
+              <td>${formatTanggalPendek(tgl)}</td>
+              <td>${map[tgl].dibuat}</td>
+              <td>${map[tgl].dikerjakan}</td>
+              <td>${map[tgl].selesai}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
   }
 
   async function ubahStatus(id, statusBaru) {
+    const tugas = tugasCache.find(t => t.id === id);
+    const update = { status: statusBaru };
+
+    if (statusBaru === "Dikerjakan" && !(tugas && tugas.dikerjakan_at)) {
+      update.dikerjakan_at = new Date().toISOString();
+    }
+    if (statusBaru === "Selesai" && !(tugas && tugas.selesai_at)) {
+      update.selesai_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from("tasks")
-      .update({ status: statusBaru })
+      .update(update)
       .eq("id", id);
 
     if (error) {

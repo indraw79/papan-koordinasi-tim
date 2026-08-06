@@ -8,8 +8,16 @@ create table if not exists public.tasks (
   penanggung_jawab text not null,
   status text not null default 'Belum Mulai'
     check (status in ('Belum Mulai', 'Dikerjakan', 'Selesai')),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  dikerjakan_at timestamptz,
+  selesai_at timestamptz
 );
+
+-- Jika tabel `tasks` sudah ada sebelumnya (project yang sudah live), jalankan
+-- dua baris ini di Supabase Dashboard -> SQL Editor untuk menambah kolom
+-- tanggal tanpa menghapus data yang sudah ada:
+-- alter table public.tasks add column if not exists dikerjakan_at timestamptz;
+-- alter table public.tasks add column if not exists selesai_at timestamptz;
 
 -- Jika gen_random_uuid() error "function does not exist", jalankan dulu:
 -- create extension if not exists pgcrypto;
