@@ -13,6 +13,18 @@
     --text: #1e293b;
     --muted: #64748b;
     --border: #e2e8f0;
+
+    --status-belum-bg: #eef1f6;
+    --status-belum-text: #64748b;
+    --status-belum-border: #cbd5e1;
+
+    --status-dikerjakan-bg: #fff7e6;
+    --status-dikerjakan-text: #b45309;
+    --status-dikerjakan-border: #fbbf24;
+
+    --status-selesai-bg: #eafaf1;
+    --status-selesai-text: #15803d;
+    --status-selesai-border: #34d399;
   }
   * { box-sizing: border-box; }
   body {
@@ -22,7 +34,7 @@
     color: var(--text);
   }
   header {
-    background: var(--card);
+    background: linear-gradient(180deg, var(--accent-light), var(--card) 140%);
     border-bottom: 1px solid var(--border);
     padding: 24px 20px;
     text-align: center;
@@ -46,6 +58,7 @@
   .form-card {
     background: var(--card);
     border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
     border-radius: 14px;
     padding: 20px;
     margin-bottom: 28px;
@@ -144,6 +157,18 @@
     padding: 14px;
     min-height: 200px;
   }
+  .column[data-status="Belum Mulai"] {
+    background: var(--status-belum-bg);
+    border-color: var(--status-belum-border);
+  }
+  .column[data-status="Dikerjakan"] {
+    background: var(--status-dikerjakan-bg);
+    border-color: var(--status-dikerjakan-border);
+  }
+  .column[data-status="Selesai"] {
+    background: var(--status-selesai-bg);
+    border-color: var(--status-selesai-border);
+  }
   .column h3 {
     margin: 0 0 12px;
     font-size: 0.95rem;
@@ -151,6 +176,9 @@
     align-items: center;
     justify-content: space-between;
   }
+  .column[data-status="Belum Mulai"] h3 { color: var(--status-belum-text); }
+  .column[data-status="Dikerjakan"] h3 { color: var(--status-dikerjakan-text); }
+  .column[data-status="Selesai"] h3 { color: var(--status-selesai-text); }
   .count {
     background: var(--accent-light);
     color: var(--accent);
@@ -159,13 +187,21 @@
     font-size: 0.75rem;
     font-weight: 700;
   }
+  .column[data-status="Belum Mulai"] .count { background: #fff; color: var(--status-belum-text); }
+  .column[data-status="Dikerjakan"] .count { background: #fff; color: var(--status-dikerjakan-text); }
+  .column[data-status="Selesai"] .count { background: #fff; color: var(--status-selesai-text); }
   .task {
-    background: var(--bg);
+    background: var(--card);
     border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
     border-radius: 10px;
     padding: 12px;
     margin-bottom: 10px;
   }
+  .column[data-status="Belum Mulai"] .task { border-left-color: var(--status-belum-border); }
+  .column[data-status="Dikerjakan"] .task { border-left-color: var(--status-dikerjakan-border); }
+  .column[data-status="Selesai"] .task { border-left-color: var(--status-selesai-border); }
+  .arsip-task { border-left-color: var(--status-selesai-border); }
   .task .nama {
     font-weight: 600;
     margin-bottom: 4px;
@@ -283,9 +319,9 @@
           <div class="field">
             <label for="status-awal">Status</label>
             <select id="status-awal">
-              <option value="Belum Mulai">Belum Mulai</option>
-              <option value="Dikerjakan">Dikerjakan</option>
-              <option value="Selesai">Selesai</option>
+              <option value="Belum Mulai">⭕ Belum Mulai</option>
+              <option value="Dikerjakan">🔧 Dikerjakan</option>
+              <option value="Selesai">✅ Selesai</option>
             </select>
           </div>
           <button type="submit">Tambah Tugas</button>
@@ -295,26 +331,26 @@
 
     <section class="board" id="board">
       <div class="column" data-status="Belum Mulai">
-        <h3>Belum Mulai <span class="count" id="count-belum-mulai">0</span></h3>
+        <h3>⭕ Belum Mulai <span class="count" id="count-belum-mulai">0</span></h3>
         <div class="list" id="list-belum-mulai"></div>
       </div>
       <div class="column" data-status="Dikerjakan">
-        <h3>Dikerjakan <span class="count" id="count-dikerjakan">0</span></h3>
+        <h3>🔧 Dikerjakan <span class="count" id="count-dikerjakan">0</span></h3>
         <div class="list" id="list-dikerjakan"></div>
       </div>
       <div class="column" data-status="Selesai">
-        <h3>Selesai <span class="count" id="count-selesai">0</span></h3>
+        <h3>✅ Selesai <span class="count" id="count-selesai">0</span></h3>
         <div class="list" id="list-selesai"></div>
       </div>
     </section>
 
     <section class="form-card">
-      <h2>Rekap Harian</h2>
+      <h2>📊 Rekap Harian</h2>
       <div id="rekap-list"></div>
     </section>
 
     <section class="form-card">
-      <h2>Arsip Tugas Selesai</h2>
+      <h2>🗂️ Arsip Tugas Selesai</h2>
       <p class="arsip-ket">Tugas berstatus Selesai otomatis dipindah ke sini &amp; dihapus dari papan utama setelah 3 hari.</p>
       <div id="arsip-list"></div>
     </section>
@@ -333,6 +369,7 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const STATUS_LIST = ["Belum Mulai", "Dikerjakan", "Selesai"];
+  const STATUS_ICON = { "Belum Mulai": "⭕", "Dikerjakan": "🔧", "Selesai": "✅" };
 
   const authView = document.getElementById("auth-view");
   const appView = document.getElementById("app-view");
@@ -432,7 +469,7 @@
           </div>
           <div class="task-actions">
             <select onchange="ubahStatus('${t.id}', this.value)">
-              ${STATUS_LIST.map(s => `<option value="${s}" ${s === t.status ? "selected" : ""}>${s}</option>`).join("")}
+              ${STATUS_LIST.map(s => `<option value="${s}" ${s === t.status ? "selected" : ""}>${STATUS_ICON[s]} ${s}</option>`).join("")}
             </select>
             <button class="hapus" onclick="hapusTugas('${t.id}')">Hapus</button>
           </div>
@@ -511,7 +548,7 @@
     }
 
     arsipEl.innerHTML = arsip.map(t => `
-      <div class="task">
+      <div class="task arsip-task">
         <div class="nama">${escapeHTML(t.nama)}</div>
         <div class="pj">Penanggung jawab: ${escapeHTML(t.penanggung_jawab)}</div>
         <div class="tanggal">
