@@ -39,6 +39,22 @@
     padding: 24px 20px;
     text-align: center;
   }
+  header .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+  }
+  header .logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  header .header-text {
+    text-align: left;
+  }
   header h1 {
     margin: 0 0 4px;
     font-size: 1.6rem;
@@ -281,8 +297,13 @@
 <body>
 
 <header>
-  <h1>PAPAN TUGAS</h1>
-  <p>Satu layar untuk lihat siapa mengerjakan apa, tanpa scroll chat</p>
+  <div class="header-inner">
+    <img class="logo" src="assets/logo-esajaya.jpeg" alt="Logo Esa Jaya">
+    <div class="header-text">
+      <h1>PAPAN TUGAS</h1>
+      <p>Satu layar untuk lihat siapa mengerjakan apa, tanpa scroll chat</p>
+    </div>
+  </div>
 </header>
 
 <section class="form-card" id="auth-view" hidden>
