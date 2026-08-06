@@ -230,6 +230,11 @@
   .rekap-table tbody tr:last-child td {
     border-bottom: none;
   }
+  .arsip-ket {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin: 0 0 14px;
+  }
 
   @media (max-width: 720px) {
     .board { grid-template-columns: 1fr; }
@@ -306,6 +311,12 @@
     <section class="form-card">
       <h2>Rekap Harian</h2>
       <div id="rekap-list"></div>
+    </section>
+
+    <section class="form-card">
+      <h2>Arsip Tugas Selesai</h2>
+      <p class="arsip-ket">Tugas berstatus Selesai otomatis dipindah ke sini &amp; dihapus dari papan utama setelah 3 hari.</p>
+      <div id="arsip-list"></div>
     </section>
   </main>
 </div>
@@ -473,6 +484,45 @@
     `;
   }
 
+  async function ambilArsip() {
+    const { data, error } = await supabase
+      .from("tasks_archive")
+      .select("*")
+      .order("selesai_at", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+    return data;
+  }
+
+  async function renderArsip() {
+    const arsipEl = document.getElementById("arsip-list");
+    const arsip = await ambilArsip();
+
+    if (arsip === null) {
+      arsipEl.innerHTML = '<div class="empty">Gagal memuat arsip</div>';
+      return;
+    }
+    if (arsip.length === 0) {
+      arsipEl.innerHTML = '<div class="empty">Belum ada tugas yang diarsipkan</div>';
+      return;
+    }
+
+    arsipEl.innerHTML = arsip.map(t => `
+      <div class="task">
+        <div class="nama">${escapeHTML(t.nama)}</div>
+        <div class="pj">Penanggung jawab: ${escapeHTML(t.penanggung_jawab)}</div>
+        <div class="tanggal">
+          Dibuat: ${formatTanggalPendek(tanggalLokal(t.created_at))}
+          ${t.dikerjakan_at ? `<br>Dikerjakan: ${formatTanggalPendek(tanggalLokal(t.dikerjakan_at))}` : ""}
+          <br>Selesai: ${formatTanggalPendek(tanggalLokal(t.selesai_at))}
+        </div>
+      </div>
+    `).join("");
+  }
+
   async function ubahStatus(id, statusBaru) {
     const tugas = tugasCache.find(t => t.id === id);
     const update = { status: statusBaru };
@@ -522,11 +572,16 @@
     const submitBtn = form.querySelector("button[type=submit]");
     submitBtn.disabled = true;
 
-    const { error } = await supabase.from("tasks").insert({
-      nama,
-      penanggung_jawab: penanggungJawab,
-      status
-    });
+    const tugasBaru = { nama, penanggung_jawab: penanggungJawab, status };
+    const sekarang = new Date().toISOString();
+    if (status === "Dikerjakan" || status === "Selesai") {
+      tugasBaru.dikerjakan_at = sekarang;
+    }
+    if (status === "Selesai") {
+      tugasBaru.selesai_at = sekarang;
+    }
+
+    const { error } = await supabase.from("tasks").insert(tugasBaru);
 
     submitBtn.disabled = false;
 
@@ -550,6 +605,9 @@
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
         render();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks_archive" }, () => {
+        renderArsip();
+      })
       .subscribe();
   }
 
@@ -567,6 +625,7 @@
       userEmailEl.textContent = session.user.email;
       subscribeRealtime();
       render();
+      renderArsip();
     } else {
       authView.hidden = false;
       appView.hidden = true;
